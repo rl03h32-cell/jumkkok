@@ -1,0 +1,862 @@
+<title>점콕 점자 변환기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap">
+<style>
+/* Layout: 한 칸짜리 스티커 보드. 로고 스티커, 입력 카드, 큰 점자 줄, 글자별 스티커 풀이, 규정 메모 서랍 순서 */
+:root {
+  --bg: #E9DEFF;
+  --bg-dot: #D3C2FA;
+  --card: #FFFFFF;
+  --ink: #24104A;
+  --muted: #655390;
+  --pink: #FF4FA3;
+  --pink-soft: #FFC9E4;
+  --lime: #C9F53F;
+  --sky: #9AD8FF;
+  --butter: #FFE866;
+  --cell: #FFF6FB;
+  --dot-on: #FF3D9A;
+  --dot-off: #E4D9F7;
+  --on-accent: #24104A;
+  --shadow: #24104A;
+  --s1: #FFD3EA;
+  --s2: #E6FFA8;
+  --s3: #CFEBFF;
+  --s4: #FFF3A6;
+  --s5: #E5D8FF;
+  --font-display: 'Jua', 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-body: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+  --font-braille: 'Segoe UI Symbol', 'Apple Braille', 'Noto Sans Symbols 2', 'DejaVu Sans', system-ui, sans-serif;
+  --bw: 3px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1B1036; --bg-dot: #2C1B54; --card: #281A4D; --ink: #F7EEFF; --muted: #BDAAE8;
+    --pink: #FF5FB0; --pink-soft: #5B2A5C; --lime: #D2FF4D; --sky: #69BDF2; --butter: #FFE866;
+    --cell: #33225F; --dot-on: #FF5FB0; --dot-off: #45356F; --on-accent: #24104A; --shadow: #0B061E;
+    --s1: #5E2A5B; --s2: #3D4E1C; --s3: #1F4568; --s4: #5B4C16; --s5: #43307F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1B1036; --bg-dot: #2C1B54; --card: #281A4D; --ink: #F7EEFF; --muted: #BDAAE8;
+  --pink: #FF5FB0; --pink-soft: #5B2A5C; --lime: #D2FF4D; --sky: #69BDF2; --butter: #FFE866;
+  --cell: #33225F; --dot-on: #FF5FB0; --dot-off: #45356F; --on-accent: #24104A; --shadow: #0B061E;
+  --s1: #5E2A5B; --s2: #3D4E1C; --s3: #1F4568; --s4: #5B4C16; --s5: #43307F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: radial-gradient(circle, var(--bg-dot) 2px, transparent 2.6px) 0 0 / 22px 22px, var(--bg);
+}
+.wrap {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 22px 64px;
+  display: grid;
+  gap: 26px;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 히어로 */
+.hero { position: relative; display: grid; gap: 12px; justify-items: start; padding-block: 6px 2px; }
+.logo { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.wordmark {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(68px, 18vw, 108px);
+  line-height: 1;
+  color: var(--pink);
+  -webkit-text-stroke: 5px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 6px 6px 0 var(--shadow);
+  transform: rotate(-2deg);
+}
+.logo-cells { display: flex; gap: 6px; transform: rotate(2deg); }
+.tagline { margin: 0; font-size: 18px; }
+.deco { position: absolute; pointer-events: none; }
+.deco path, .deco polygon { stroke: var(--ink); stroke-width: 2.4; stroke-linejoin: round; }
+.deco.heart { right: 6%; top: 4px; width: 54px; transform: rotate(12deg); }
+.deco.heart path { fill: var(--pink-soft); }
+.deco.star { right: 22%; top: 70px; width: 40px; transform: rotate(-14deg); }
+.deco.star polygon { fill: var(--butter); }
+.deco.spark { right: 4%; top: 104px; width: 34px; }
+.deco.spark path { fill: var(--lime); }
+
+/* 카드와 제목 스티커 */
+.card {
+  background: var(--card);
+  border: var(--bw) solid var(--ink);
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 var(--shadow);
+  padding: 18px;
+  min-width: 0;
+}
+.tag {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 3px 14px 4px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--on-accent);
+  background: var(--butter);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  transform: rotate(-2deg);
+}
+.tag.pink { background: var(--pink-soft); transform: rotate(1.5deg); }
+.tag.sky { background: var(--sky); }
+
+/* 입력 */
+.ta {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--cell);
+  border: var(--bw) solid var(--ink);
+  border-radius: 16px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+.ta::placeholder { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.btn {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--on-accent);
+  background: var(--pink);
+  border: var(--bw) solid var(--ink);
+  border-radius: 999px;
+  padding: 7px 14px 8px;
+  box-shadow: 3px 3px 0 var(--shadow);
+  cursor: pointer;
+}
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--shadow); }
+.btn:focus-visible, .ta:focus-visible, summary:focus-visible, .cell.hid:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+.btn.chip { background: var(--s5); }
+.btn.ghost { background: var(--card); color: var(--ink); }
+.btn.tg { background: var(--card); color: var(--ink); }
+.btn.tg[aria-pressed="true"] { background: var(--lime); color: var(--on-accent); }
+@media (prefers-reduced-motion: no-preference) { .btn { transition: transform .08s, box-shadow .08s; } }
+
+/* 결과 */
+.out-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.out-top .tag { margin: 0; }
+.tgs { display: flex; flex-wrap: wrap; gap: 8px; }
+.hint { margin: 4px 0 14px; font-size: 14px; color: var(--muted); }
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 14px 8px;
+  min-height: 90px;
+  padding: 16px;
+  background: var(--s5);
+  border: 2px dashed var(--ink);
+  border-radius: 16px;
+}
+.wd { display: inline-flex; gap: 5px; }
+.sp { width: 18px; }
+.brk { flex-basis: 100%; height: 0; }
+.empty { margin: 0; align-self: center; color: var(--muted); }
+
+.cell {
+  display: inline-block;
+  width: var(--cw, 34px);
+  aspect-ratio: 28 / 42;
+  padding: 0;
+  line-height: 0;
+  background: var(--cell);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 2px 2px 0 var(--shadow);
+  color: var(--ink);
+  font: inherit;
+}
+.cell svg { display: block; width: 100%; height: 100%; }
+.cell.lg { --cw: 38px; }
+.cell.sm { --cw: 28px; border-radius: 8px; box-shadow: 1px 1px 0 var(--shadow); }
+.cell .on { fill: var(--dot-on); stroke: var(--ink); stroke-width: 1.2; }
+.cell .off { fill: var(--dot-off); }
+.cell .ton { fill: var(--on-accent); font-family: var(--font-body); font-size: 7.5px; font-weight: 700; }
+.cell .toff { fill: var(--muted); font-family: var(--font-body); font-size: 7px; font-weight: 700; }
+.cell.bad { display: inline-grid; place-items: center; font-family: var(--font-display); font-size: 20px; line-height: 1; background: var(--butter); color: var(--on-accent); }
+button.cell.hid {
+  position: relative;
+  cursor: pointer;
+  background: repeating-linear-gradient(45deg, var(--pink-soft) 0 6px, var(--cell) 6px 12px);
+}
+button.cell.hid svg { visibility: hidden; }
+button.cell.hid::after {
+  content: '?';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.uni-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; margin-top: 16px; }
+.uni {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-family: var(--font-braille);
+  font-size: 22px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--cell);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 8px 12px;
+  resize: none;
+}
+.uni.blur { filter: blur(7px); cursor: pointer; }
+.toast { min-height: 1.5em; margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.warn {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--on-accent);
+  background: var(--butter);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+}
+
+/* 글자별 스티커 */
+.stickers { list-style: none; margin: 0; padding: 4px 0 0; display: flex; flex-wrap: wrap; gap: 16px 14px; }
+.stk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px 12px;
+  background: var(--sbg);
+  border: var(--bw) solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 3px 3px 0 var(--shadow);
+  transform: rotate(var(--rot, 0deg));
+}
+.stk .src { font-family: var(--font-display); font-size: 28px; line-height: 1.1; overflow-wrap: anywhere; }
+.stk .cells { display: flex; flex-wrap: wrap; gap: 8px; }
+.pc { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 46px; }
+.cap { display: flex; flex-direction: column; align-items: center; text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
+.cap b { font-size: 14px; font-weight: 700; min-height: 1.2em; }
+.cap i { font-style: normal; font-size: 10.5px; color: var(--muted); }
+.stk .why { margin: 0; max-width: 210px; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.stk.gap { border-style: dashed; box-shadow: none; }
+
+/* 규정 메모 */
+.rules summary {
+  display: inline-block;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-display);
+  font-size: 20px;
+  padding: 3px 14px 4px;
+  color: var(--on-accent);
+  background: var(--lime);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  transform: rotate(-1.5deg);
+}
+.rules summary::-webkit-details-marker { display: none; }
+.rules ul { margin: 14px 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.rules p { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 480px) {
+  .cell.lg { --cw: 32px; }
+  .card { padding: 14px; }
+  .deco.star { display: none; }
+}
+</style>
+
+<div class="wrap" lang="ko">
+  <header class="hero">
+    <svg class="deco heart" viewBox="0 0 32 30" aria-hidden="true"><path d="M16 28C6 20 2 14 2 9c0-5 4-7 7.500-7 3 0 5.500 2 6.500 4.500C17 4 19.500 2 22.500 2 26 2 30 4 30 9c0 5-4 11-14 19z"/></svg>
+    <svg class="deco star" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 20,12 31,12 22,19 25,30 16,23 7,30 10,19 1,12 12,12"/></svg>
+    <svg class="deco spark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 0c1 10 6 15 16 16-10 1-15 6-16 16-1-10-6-15-16-16C10 15 15 10 16 0z"/></svg>
+    <div class="logo">
+      <h1 class="wordmark">점콕</h1>
+      <div class="logo-cells" id="logoCells" role="img" aria-label="점콕을 점자로 쓴 모습"></div>
+    </div>
+    <p class="tagline">한글을 쓰면 점자가 짠!<br>내가 찍은 점이 맞는지 콕 확인해요.</p>
+  </header>
+
+  <section class="card" aria-labelledby="inTitle">
+    <h2 class="tag pink" id="inTitle">한글 입력</h2>
+    <textarea class="ta" id="src" rows="3" maxlength="400" spellcheck="false" aria-label="점자로 바꿀 한글" placeholder="여기에 한글을 써 보세요"></textarea>
+    <div class="chips" role="group" aria-label="예시 글">
+      <button type="button" class="btn chip" data-ex="안녕하세요">안녕하세요</button>
+      <button type="button" class="btn chip" data-ex="장애이해교육">장애이해교육</button>
+      <button type="button" class="btn chip" data-ex="하얀 눈이 와요">하얀 눈이 와요</button>
+      <button type="button" class="btn chip" data-ex="그리고 우리는 친구">그리고 우리는 친구</button>
+      <button type="button" class="btn chip" data-ex="점자의 날은 11월 4일">점자의 날은 11월 4일</button>
+      <button type="button" class="btn ghost" id="clear">지우기</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="outTitle">
+    <div class="out-top">
+      <h2 class="tag" id="outTitle">점자 줄</h2>
+      <div class="tgs" role="group" aria-label="보기 설정">
+        <button type="button" class="btn tg" id="tgNum" aria-pressed="false">점 번호</button>
+        <button type="button" class="btn tg" id="tgMirror" aria-pressed="false">뒤집어 보기</button>
+        <button type="button" class="btn tg" id="tgHide" aria-pressed="false">가리기</button>
+        <button type="button" class="btn ghost" id="revealAll" hidden>모두 열기</button>
+      </div>
+    </div>
+    <p class="hint" id="hint"></p>
+    <div class="strip" id="strip"></div>
+    <div class="uni-row">
+      <textarea class="uni" id="uni" rows="2" readonly aria-label="유니코드 점자"></textarea>
+      <button type="button" class="btn" id="copy">복사</button>
+    </div>
+    <p class="toast" id="toast" role="status"></p>
+    <p class="warn" id="warn" hidden></p>
+  </section>
+
+  <section class="card" aria-labelledby="whyTitle">
+    <h2 class="tag sky" id="whyTitle">글자별 풀이</h2>
+    <ul class="stickers" id="stickers"></ul>
+  </section>
+
+  <details class="card rules">
+    <summary>점자 규정 메모</summary>
+    <ul>
+      <li>한국 점자 규정을 바탕으로 만들었어요.</li>
+      <li>첫소리, 모음, 받침, 된소리표, 겹받침을 적어요.</li>
+      <li>약자(가·사, 억·언·얼 …, 성·정·청, 것)와 약어 7개를 써요.</li>
+      <li>‘예’나 ‘애’ 앞의 붙임표, 숫자 앞의 수표, 숫자 뒤 띄움을 지켜요.</li>
+      <li>문장 부호, 영어의 로마자표와 종료표도 적어요.</li>
+      <li>영어는 한 글자씩 적고 줄임 표기는 쓰지 않아요.</li>
+      <li>한자, 수학 기호, 강조표, 긴 숫자의 줄 나눔은 아직 없어요.</li>
+    </ul>
+    <p>헷갈리는 글자는 점자 규정과 함께 확인해요.</p>
+  </details>
+</div>
+
+<script>
+/* 한글 → 점자 변환 엔진 (한국 점자 규정 기반) */
+(function (root) {
+  'use strict';
+
+  var BASE = 0x2800;
+  function cell(dots) {
+    var v = 0;
+    for (var k = 0; k < dots.length; k++) v |= 1 << (dots[k] - 1);
+    return String.fromCharCode(BASE + v);
+  }
+  function P(dots, j, r) { return { c: cell(dots), j: j, r: r }; }
+
+  var CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  var JUNG = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
+  var JONG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+
+  var CHO_D = {
+    'ㄱ': [4], 'ㄴ': [1, 4], 'ㄷ': [2, 4], 'ㄹ': [5], 'ㅁ': [1, 5], 'ㅂ': [4, 5], 'ㅅ': [6],
+    'ㅈ': [4, 6], 'ㅊ': [5, 6], 'ㅋ': [1, 2, 4], 'ㅌ': [1, 2, 5], 'ㅍ': [1, 4, 5], 'ㅎ': [2, 4, 5]
+  };
+  var DBL = { 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' };
+
+  var JUNG_D = {
+    'ㅏ': [1, 2, 6], 'ㅑ': [3, 4, 5], 'ㅓ': [2, 3, 4], 'ㅕ': [1, 5, 6], 'ㅗ': [1, 3, 6], 'ㅛ': [3, 4, 6],
+    'ㅜ': [1, 3, 4], 'ㅠ': [1, 4, 6], 'ㅡ': [2, 4, 6], 'ㅣ': [1, 3, 5], 'ㅐ': [1, 2, 3, 5], 'ㅔ': [1, 3, 4, 5],
+    'ㅚ': [1, 3, 4, 5, 6], 'ㅖ': [3, 4], 'ㅘ': [1, 2, 3, 6], 'ㅝ': [1, 2, 3, 4], 'ㅢ': [2, 4, 5, 6]
+  };
+  var JUNG_2 = { 'ㅒ': ['ㅑ', 'ㅐ'], 'ㅙ': ['ㅘ', 'ㅐ'], 'ㅞ': ['ㅝ', 'ㅐ'], 'ㅟ': ['ㅜ', 'ㅐ'] };
+
+  var JONG_D = {
+    'ㄱ': [1], 'ㄴ': [2, 5], 'ㄷ': [3, 5], 'ㄹ': [2], 'ㅁ': [2, 6], 'ㅂ': [1, 2], 'ㅅ': [3], 'ㅇ': [2, 3, 5, 6],
+    'ㅈ': [1, 3], 'ㅊ': [2, 3], 'ㅋ': [2, 3, 5], 'ㅌ': [2, 3, 6], 'ㅍ': [2, 5, 6], 'ㅎ': [3, 5, 6], 'ㅆ': [3, 4]
+  };
+  var JONG_C = {
+    '': [], 'ㄱ': ['ㄱ'], 'ㄲ': ['ㄱ', 'ㄱ'], 'ㄳ': ['ㄱ', 'ㅅ'], 'ㄴ': ['ㄴ'], 'ㄵ': ['ㄴ', 'ㅈ'], 'ㄶ': ['ㄴ', 'ㅎ'],
+    'ㄷ': ['ㄷ'], 'ㄹ': ['ㄹ'], 'ㄺ': ['ㄹ', 'ㄱ'], 'ㄻ': ['ㄹ', 'ㅁ'], 'ㄼ': ['ㄹ', 'ㅂ'], 'ㄽ': ['ㄹ', 'ㅅ'],
+    'ㄾ': ['ㄹ', 'ㅌ'], 'ㄿ': ['ㄹ', 'ㅍ'], 'ㅀ': ['ㄹ', 'ㅎ'], 'ㅁ': ['ㅁ'], 'ㅂ': ['ㅂ'], 'ㅄ': ['ㅂ', 'ㅅ'],
+    'ㅅ': ['ㅅ'], 'ㅆ': ['ㅆ'], 'ㅇ': ['ㅇ'], 'ㅈ': ['ㅈ'], 'ㅊ': ['ㅊ'], 'ㅋ': ['ㅋ'], 'ㅌ': ['ㅌ'], 'ㅍ': ['ㅍ'], 'ㅎ': ['ㅎ']
+  };
+
+  /* 'ㅏ'를 줄인 약자 (가 나 다 마 바 사 자 카 타 파 하) */
+  var ABBR_A = {
+    'ㄱ': [1, 2, 4, 6], 'ㄴ': [1, 4], 'ㄷ': [2, 4], 'ㅁ': [1, 5], 'ㅂ': [4, 5], 'ㅅ': [1, 2, 3],
+    'ㅈ': [4, 6], 'ㅋ': [1, 2, 4], 'ㅌ': [1, 2, 5], 'ㅍ': [1, 4, 5], 'ㅎ': [2, 4, 5]
+  };
+  /* 제14항: 뒤에 모음이 이어지면 약자를 쓰지 않는 글자의 첫소리 */
+  var NO_ABBR_BASE = { 'ㄴ': 1, 'ㄷ': 1, 'ㅁ': 1, 'ㅂ': 1, 'ㅈ': 1, 'ㅋ': 1, 'ㅌ': 1, 'ㅍ': 1, 'ㅎ': 1 };
+
+  /* 모음+받침 약자 (억 언 얼 연 열 영 옥 온 옹 운 울 은 을 인) — 어떤 첫소리 뒤에도 쓴다 */
+  var RIME = {
+    'ㅓㄱ': { d: [1, 4, 5, 6], n: '억' }, 'ㅓㄴ': { d: [2, 3, 4, 5, 6], n: '언' }, 'ㅓㄹ': { d: [2, 3, 4, 5], n: '얼' },
+    'ㅕㄴ': { d: [1, 6], n: '연' }, 'ㅕㄹ': { d: [1, 2, 5, 6], n: '열' }, 'ㅕㅇ': { d: [1, 2, 4, 5, 6], n: '영' },
+    'ㅗㄱ': { d: [1, 3, 4, 6], n: '옥' }, 'ㅗㄴ': { d: [1, 2, 3, 5, 6], n: '온' }, 'ㅗㅇ': { d: [1, 2, 3, 4, 5, 6], n: '옹' },
+    'ㅜㄴ': { d: [1, 2, 4, 5], n: '운' }, 'ㅜㄹ': { d: [1, 2, 3, 4, 6], n: '울' },
+    'ㅡㄴ': { d: [1, 3, 5, 6], n: '은' }, 'ㅡㄹ': { d: [2, 3, 4, 6], n: '을' }, 'ㅣㄴ': { d: [1, 2, 3, 4, 5], n: '인' }
+  };
+
+  /* 약어 */
+  var WORDS = {
+    '그래서': [[1], [2, 3, 4]], '그러나': [[1], [1, 4]], '그러면': [[1], [2, 5]], '그러므로': [[1], [2, 6]],
+    '그런데': [[1], [1, 3, 4, 5]], '그리고': [[1], [1, 3, 6]], '그리하여': [[1], [1, 5, 6]]
+  };
+  var WORD_KEYS = Object.keys(WORDS);
+
+  var LAT = {
+    a: [1], b: [1, 2], c: [1, 4], d: [1, 4, 5], e: [1, 5], f: [1, 2, 4], g: [1, 2, 4, 5], h: [1, 2, 5], i: [2, 4],
+    j: [2, 4, 5], k: [1, 3], l: [1, 2, 3], m: [1, 3, 4], n: [1, 3, 4, 5], o: [1, 3, 5], p: [1, 2, 3, 4],
+    q: [1, 2, 3, 4, 5], r: [1, 2, 3, 4, 5], r: [1, 2, 3, 5], s: [2, 3, 4], t: [2, 3, 4, 5], u: [1, 3, 6], v: [1, 2, 3, 6],
+    w: [2, 4, 5, 6], x: [1, 3, 4, 6], y: [1, 3, 4, 5, 6], z: [1, 3, 5, 6]
+  };
+  var DIGIT = { '1': [1], '2': [1, 2], '3': [1, 4], '4': [1, 4, 5], '5': [1, 5], '6': [1, 2, 4], '7': [1, 2, 4, 5], '8': [1, 2, 5], '9': [2, 4], '0': [2, 4, 5] };
+
+  var PUNCT = {
+    '.': [[2, 5, 6]], ',': [[5]], '?': [[2, 3, 6]], '!': [[2, 3, 5]],
+    ':': [[5], [2]], '：': [[5], [2]], ';': [[5, 6], [2, 3]], '·': [[5], [2, 3]],
+    '~': [[4], [3, 5]], '∼': [[4], [3, 5]], '-': [[3, 6]], '―': [[3, 6], [3, 6]],
+    '*': [[5], [3, 5]], '/': [[4, 5, 6], [3, 4]],
+    '(': [[2, 3, 6], [3]], ')': [[6], [3, 5, 6]], '{': [[2, 3, 6], [2]], '}': [[5], [3, 5, 6]],
+    '[': [[2, 3, 6], [2, 3]], ']': [[5, 6], [3, 5, 6]],
+    '「': [[5], [2, 3, 6]], '」': [[3, 5, 6], [2]], '『': [[5, 6], [2, 3, 6]], '』': [[3, 5, 6], [2, 3]],
+    '“': [[2, 3, 6]], '”': [[3, 5, 6]], '‘': [[6], [2, 3, 6]], '’': [[3, 5, 6], [3]],
+    '〈': [[5], [2, 3, 5, 6]], '〉': [[2, 3, 5, 6], [2]], '《': [[5, 6], [2, 3, 5, 6]], '》': [[2, 3, 5, 6], [2, 3]]
+  };
+
+  function isSyl(c) { return !!c && c.length === 1 && c >= '가' && c <= '힣'; }
+  function isDigit(c) { return !!c && c.length === 1 && c >= '0' && c <= '9'; }
+  function isLat(c) { return !!c && /^[A-Za-z]$/.test(c); }
+
+  function dec(ch) {
+    var c = ch.charCodeAt(0) - 0xAC00;
+    return { cho: CHO[Math.floor(c / 588)], jung: JUNG[Math.floor((c % 588) / 28)], jong: JONG[c % 28] };
+  }
+
+  function choParts(cho) {
+    if (cho === 'ㅇ') return [];
+    if (DBL[cho]) return [P([6], cho, '된소리'), P(CHO_D[DBL[cho]], DBL[cho], '첫소리')];
+    return [P(CHO_D[cho], cho, '첫소리')];
+  }
+  function jungParts(j) {
+    if (JUNG_2[j]) return [P(JUNG_D[JUNG_2[j][0]], j, '모음'), P(JUNG_D[JUNG_2[j][1]], '', '모음')];
+    return [P(JUNG_D[j], j, '모음')];
+  }
+  function compParts(comps) {
+    var out = [];
+    for (var k = 0; k < comps.length; k++) out.push(P(JONG_D[comps[k]], comps[k], '받침'));
+    return out;
+  }
+  function sylGlyph(cho, jung) {
+    return String.fromCharCode(0xAC00 + (CHO.indexOf(cho) * 21 + JUNG.indexOf(jung)) * 28);
+  }
+
+  /* 한글 음절 한 글자 → 점자 칸들 */
+  function sylUnit(ch, next) {
+    var d = dec(ch), cho = d.cho, jung = d.jung, jong = d.jong;
+    var comps = JONG_C[jong];
+    var sib = cho === 'ㅅ' || cho === 'ㅆ' || cho === 'ㅈ' || cho === 'ㅉ' || cho === 'ㅊ';
+    var parts, why = '';
+
+    if (ch === '것') {
+      parts = [P([4, 5, 6], '것', '약자'), P([2, 3, 4], '', '약자')];
+      why = '‘것’은 약자로 써요.';
+    } else if (ch === '껏') {
+      parts = [P([6], 'ㄲ', '된소리'), P([4, 5, 6], '것', '약자'), P([2, 3, 4], '', '약자')];
+      why = '‘껏’은 된소리표에 ‘것’ 약자를 붙여요.';
+    } else if (sib && jung === 'ㅓ' && comps.length === 1 && comps[0] === 'ㅇ') {
+      parts = choParts(cho).concat([P([1, 2, 4, 5, 6], 'ㅓㅇ', '약자')]);
+      why = '성·정·청은 ‘영’ 약자(⠻)를 써요.';
+    } else if (comps.length && RIME[jung + comps[0]] && !(sib && jung === 'ㅕ' && comps[0] === 'ㅇ')) {
+      var rm = RIME[jung + comps[0]];
+      parts = choParts(cho).concat([P(rm.d, jung + comps[0], '약자')], compParts(comps.slice(1)));
+      why = '‘' + jung + comps[0] + '’은 ‘' + rm.n + '’ 약자 한 칸으로 써요.';
+    } else if (jung === 'ㅏ' && (ABBR_A[cho] || ABBR_A[DBL[cho]])) {
+      var base = DBL[cho] || cho, dbl = !!DBL[cho];
+      var full = false;
+      if (cho === 'ㅍ' && jong === 'ㅆ') {
+        full = true; why = '‘팠’은 약자를 쓰지 않고 ㅏ를 적어요.';
+      } else if (!jong && NO_ABBR_BASE[base] && next && isSyl(next) && next !== '예' && dec(next).cho === 'ㅇ') {
+        full = true; why = '뒤에 모음이 이어져서 약자를 쓰지 않아요.';
+      }
+      if (full) {
+        parts = choParts(cho).concat(jungParts(jung), compParts(comps));
+      } else {
+        parts = (dbl ? [P([6], cho, '된소리')] : []).concat([P(ABBR_A[base], sylGlyph(cho, 'ㅏ'), '약자')], compParts(comps));
+        why = '‘' + sylGlyph(cho, 'ㅏ') + '’는 ㅏ를 줄인 약자예요.';
+      }
+    } else {
+      parts = choParts(cho).concat(jungParts(jung), compParts(comps));
+    }
+
+    /* 제11·12항: 붙임표 */
+    if (!jong && next && isSyl(next)) {
+      var nd = dec(next);
+      if (nd.cho === 'ㅇ' && nd.jung === 'ㅖ') {
+        parts.push(P([3, 6], '', '붙임표'));
+        why += (why ? ' ' : '') + '‘예’ 앞에는 붙임표(⠤)를 써요.';
+      } else if (nd.cho === 'ㅇ' && nd.jung === 'ㅐ' && (jung === 'ㅑ' || jung === 'ㅘ' || jung === 'ㅜ' || jung === 'ㅝ')) {
+        parts.push(P([3, 6], '', '붙임표'));
+        why += (why ? ' ' : '') + '‘애’가 이어져서 붙임표(⠤)를 써요.';
+      }
+    }
+    return { kind: 'syl', src: ch, parts: parts, why: why };
+  }
+
+  function latinWord(w) {
+    var letters = w.replace(/[^A-Za-z]/g, '');
+    var allCap = letters.length >= 2 && letters === letters.toUpperCase();
+    var parts = [];
+    if (allCap) { parts.push(P([6], '', '대문자')); parts.push(P([6], '', '대문자')); }
+    for (var k = 0; k < w.length; k++) {
+      var x = w.charAt(k);
+      if (isLat(x)) {
+        if (!allCap && x !== x.toLowerCase()) parts.push(P([6], '', '대문자'));
+        parts.push(P(LAT[x.toLowerCase()], x, '영문'));
+      } else if (x === '-') parts.push(P([3, 6], '-', '부호'));
+      else parts.push(P([3], '’', '부호'));
+    }
+    return parts;
+  }
+
+  function convert(text) {
+    var chars = Array.from(String(text == null ? '' : text).normalize('NFC'));
+    var n = chars.length, units = [], bad = [];
+    var dq = false, sq = false;
+    var i = 0;
+
+    while (i < n) {
+      var ch = chars[i];
+
+      if (ch === '\n') { units.push({ kind: 'br' }); i++; continue; }
+      if (ch === ' ' || ch === '\t' || ch === ' ' || ch === '　') { units.push({ kind: 'space', src: ' ' }); i++; continue; }
+      if (ch === '\r' || ch === '​' || ch === '﻿') { i++; continue; }
+
+      /* 한글 음절 */
+      if (isSyl(ch)) {
+        if (!isSyl(chars[i - 1])) {
+          var hit = null;
+          for (var w = 0; w < WORD_KEYS.length; w++) {
+            if (chars.slice(i, i + WORD_KEYS[w].length).join('') === WORD_KEYS[w]) { hit = WORD_KEYS[w]; break; }
+          }
+          if (hit) {
+            var cs = WORDS[hit];
+            units.push({
+              kind: 'word', src: hit,
+              parts: [P(cs[0], hit, '약어'), P(cs[1], '', '약어')],
+              why: '‘' + hit + '’는 약어로 두 칸에 써요.'
+            });
+            i += hit.length; continue;
+          }
+        }
+        units.push(sylUnit(ch, chars[i + 1])); i++; continue;
+      }
+
+      /* 숫자 */
+      if (isDigit(ch)) {
+        var j = i, nparts = [P([3, 4, 5, 6], '#', '수표')];
+        while (j < n) {
+          var cj = chars[j];
+          if (isDigit(cj)) { nparts.push(P(DIGIT[cj], cj, '숫자')); j++; }
+          else if ((cj === '.' || cj === ',') && isDigit(chars[j - 1]) && isDigit(chars[j + 1])) {
+            nparts.push(cj === ',' ? P([2], ',', '쉼표') : P([2, 5, 6], '.', '소수점')); j++;
+          } else break;
+        }
+        units.push({ kind: 'num', src: chars.slice(i, j).join(''), parts: nparts, why: '숫자 앞에는 수표(⠼)를 써요.' });
+        var nx = chars[j];
+        if (isSyl(nx)) {
+          var nd2 = dec(nx);
+          if ('ㄴㄷㅁㅋㅌㅍㅎ'.indexOf(nd2.cho) >= 0 || nx === '운') {
+            units.push({ kind: 'space', auto: true, why: '숫자와 헷갈리지 않게 한 칸 띄워요.' });
+          }
+        }
+        i = j; continue;
+      }
+
+      /* 영문 */
+      if (isLat(ch)) {
+        var words = [], k2 = i;
+        for (;;) {
+          var wd = '';
+          while (k2 < n) {
+            var ck = chars[k2];
+            if (isLat(ck)) { wd += ck; k2++; }
+            else if ((ck === "'" || ck === '’' || ck === '-') && isLat(chars[k2 - 1]) && isLat(chars[k2 + 1])) { wd += ck; k2++; }
+            else break;
+          }
+          words.push(wd);
+          if (chars[k2] === ' ' && isLat(chars[k2 + 1])) { k2++; continue; }
+          break;
+        }
+        var after = chars[k2], term = true;
+        if (isDigit(after)) term = false;
+        else if (after && after !== '.' && (PUNCT[after] || after === '"' || after === "'")) term = false;
+        for (var q = 0; q < words.length; q++) {
+          var wp = latinWord(words[q]);
+          var why2 = '';
+          if (q === 0) { wp.unshift(P([3, 5, 6], '', '로마자표')); why2 = '영어 앞에는 로마자표(⠴)를 써요. 영어는 한 글자씩 적어요.'; }
+          if (q === words.length - 1 && term) { wp.push(P([2, 5, 6], '', '종료표')); why2 += (why2 ? ' ' : '') + '끝에는 종료표(⠲)를 써요.'; }
+          units.push({ kind: 'lat', src: words[q], parts: wp, why: why2 });
+          if (q < words.length - 1) units.push({ kind: 'space', src: ' ' });
+        }
+        i = k2; continue;
+      }
+
+      /* 줄임표 */
+      if (ch === '.' ) {
+        var e = i; while (chars[e] === '.') e++;
+        var len = e - i, dp = [];
+        for (var z = 0; z < (len >= 3 ? 3 : len); z++) dp.push(P([2, 5, 6], '.', '부호'));
+        units.push({ kind: 'punct', src: len >= 3 ? '…' : '.'.repeat(len), parts: dp, why: len >= 3 ? '마침표 줄임표는 ⠲⠲⠲으로 써요.' : '' });
+        i = e; continue;
+      }
+      if (ch === '…' || ch === '⋯') {
+        var e2 = i; while (chars[e2] === '…' || chars[e2] === '⋯') e2++;
+        units.push({ kind: 'punct', src: '…', parts: [P([6], '…', '부호'), P([6], '', '부호'), P([6], '', '부호')], why: '줄임표는 ⠠⠠⠠으로 써요.' });
+        i = e2; continue;
+      }
+
+      /* 따옴표 (곧은 따옴표는 열고 닫음을 번갈아) */
+      if (ch === '"') {
+        units.push({ kind: 'punct', src: ch, parts: [dq ? P([3, 5, 6], ch, '닫는표') : P([2, 3, 6], ch, '여는표')], why: '' });
+        dq = !dq; i++; continue;
+      }
+      if (ch === "'") {
+        units.push({ kind: 'punct', src: ch, parts: sq ? [P([3, 5, 6], ch, '닫는표'), P([3], '', '닫는표')] : [P([6], ch, '여는표'), P([2, 3, 6], '', '여는표')], why: '' });
+        sq = !sq; i++; continue;
+      }
+
+      if (PUNCT[ch]) {
+        var pp = PUNCT[ch], pparts = [];
+        for (var u = 0; u < pp.length; u++) pparts.push(P(pp[u], u === 0 ? ch : '', '부호'));
+        units.push({ kind: 'punct', src: ch, parts: pparts, why: '' });
+        i++; continue;
+      }
+
+      /* 낱자모 */
+      if (ch >= 'ㄱ' && ch <= 'ㅣ') {
+        var jp = null;
+        if (JONG_C[ch] && JONG_C[ch].length) jp = compParts(JONG_C[ch]);
+        else if (JUNG_D[ch] || JUNG_2[ch]) jp = jungParts(ch);
+        if (jp) {
+          jp[0].j = ch;
+          units.push({ kind: 'jamo', src: ch, parts: [P([1, 2, 3, 4, 5, 6], '', '온표')].concat(jp), why: '낱자는 앞에 온표(⠿)를 써요.' });
+          i++; continue;
+        }
+      }
+
+      units.push({ kind: 'bad', src: ch });
+      bad.push(ch);
+      i++;
+    }
+
+    return { units: units, unicode: toUnicode(units), bad: bad };
+  }
+
+  function toUnicode(units) {
+    var s = '';
+    for (var k = 0; k < units.length; k++) {
+      var u = units[k];
+      if (u.kind === 'br') s += '\n';
+      else if (u.kind === 'space') s += '⠀';
+      else if (u.kind === 'bad') continue;
+      else for (var m = 0; m < u.parts.length; m++) s += u.parts[m].c;
+    }
+    return s;
+  }
+
+  var api = { convert: convert, toUnicode: toUnicode, dec: dec };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Braille = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var src = $('src'), strip = $('strip'), stickers = $('stickers'), uni = $('uni');
+  var warn = $('warn'), hint = $('hint'), toast = $('toast'), revealAll = $('revealAll');
+  var state = { nums: false, mirror: false, hide: false };
+  var DEFAULT = '';
+  var toastTimer = 0;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function dotsOf(ch) {
+    var b = ch.charCodeAt(0) - 0x2800, a = [];
+    for (var n = 1; n <= 6; n++) if ((b >> (n - 1)) & 1) a.push(n);
+    return a;
+  }
+
+  function cellHTML(ch, size, hide, mirror) {
+    var on = dotsOf(ch);
+    var label = on.length ? '점 ' + on.join(', ') : '빈 칸';
+    var svg = '<svg viewBox="0 0 28 42" aria-hidden="true" focusable="false">';
+    for (var n = 1; n <= 6; n++) {
+      var isOn = on.indexOf(n) >= 0;
+      var right = n > 3;
+      var atRight = mirror ? !right : right;
+      var x = atRight ? 20 : 8;
+      var y = [8, 21, 34][(n - 1) % 3];
+      if (state.nums) {
+        svg += '<circle cx="' + x + '" cy="' + y + '" r="6" class="' + (isOn ? 'on' : 'off') + '"/>' +
+          '<text x="' + x + '" y="' + (y + 2.6) + '" text-anchor="middle" class="' + (isOn ? 'ton' : 'toff') + '">' + n + '</text>';
+      } else {
+        svg += '<circle cx="' + x + '" cy="' + y + '" r="' + (isOn ? 5.6 : 2) + '" class="' + (isOn ? 'on' : 'off') + '"/>';
+      }
+    }
+    svg += '</svg>';
+    if (hide) {
+      return '<button type="button" class="cell ' + size + ' hid" aria-label="가려진 점자 칸. 눌러서 열어요" data-label="' + label + '">' + svg + '</button>';
+    }
+    return '<span class="cell ' + size + '" role="img" aria-label="' + label + '">' + svg + '</span>';
+  }
+
+  function renderStrip(units) {
+    var out = '', group = '';
+    function flush() { if (group) { out += '<span class="wd">' + group + '</span>'; group = ''; } }
+    units.forEach(function (u) {
+      if (u.kind === 'br') { flush(); out += '<span class="brk"></span>'; }
+      else if (u.kind === 'space') { flush(); out += '<span class="sp"></span>'; }
+      else if (u.kind === 'bad') { group += '<span class="cell lg bad" role="img" aria-label="바꾸지 못한 글자">?</span>'; }
+      else u.parts.forEach(function (p) { group += cellHTML(p.c, 'lg', state.hide, state.mirror); });
+    });
+    flush();
+    return out;
+  }
+
+  var ROT = [-1.4, 0.9, -0.6, 1.5, -1];
+  function renderStickers(units) {
+    var out = '', idx = 0;
+    units.forEach(function (u) {
+      if (u.kind === 'br' || (u.kind === 'space' && !u.auto)) return;
+      var style = ' style="--sbg:var(--s' + ((idx % 5) + 1) + ');--rot:' + ROT[idx % 5] + 'deg"';
+      idx++;
+      if (u.kind === 'bad') {
+        out += '<li class="stk"' + style + '><div class="src">' + esc(u.src) + '</div><p class="why">점자로 바꾸지 못했어요.</p></li>';
+        return;
+      }
+      if (u.kind === 'space') {
+        out += '<li class="stk gap"' + style + '><div class="src">띄움</div><p class="why">' + esc(u.why) + '</p></li>';
+        return;
+      }
+      var cells = u.parts.map(function (p) {
+        return '<div class="pc">' + cellHTML(p.c, 'sm', state.hide, false) +
+          '<span class="cap"><b>' + esc(p.j) + '</b><i>' + esc(p.r) + '</i></span></div>';
+      }).join('');
+      out += '<li class="stk"' + style + '><div class="src">' + esc(u.src) + '</div><div class="cells">' + cells + '</div>' +
+        (u.why ? '<p class="why">' + esc(u.why) + '</p>' : '') + '</li>';
+    });
+    return out;
+  }
+
+  function setToast(msg) {
+    toast.textContent = msg;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.textContent = ''; }, 2600);
+  }
+
+  function render() {
+    var res = Braille.convert(src.value);
+    var has = res.units.some(function (u) { return u.kind !== 'br' && u.kind !== 'space'; });
+    strip.dir = has && state.mirror ? 'rtl' : 'ltr';
+    strip.innerHTML = has ? renderStrip(res.units) : '<p class="empty">한글을 입력하면 점자가 나타나요.</p>';
+    stickers.innerHTML = has ? renderStickers(res.units) : '';
+    uni.value = res.unicode;
+    uni.classList.toggle('blur', state.hide && has);
+    revealAll.hidden = !(state.hide && has);
+
+    var h = state.mirror
+      ? '찍는 면이에요. 오른쪽에서 왼쪽으로 찍고, 점은 거울처럼 반대쪽에 있어요. 아래 풀이는 읽는 면이에요.'
+      : '읽는 면이에요. 왼쪽에서 오른쪽으로 읽어요.';
+    if (state.hide) h += ' 칸을 누르면 정답이 열려요.';
+    hint.textContent = h;
+
+    if (res.bad.length) {
+      var uniq = res.bad.filter(function (c, i, a) { return a.indexOf(c) === i; }).join(' ');
+      warn.textContent = '점자로 바꾸지 못한 글자가 있어요: ' + uniq;
+      warn.hidden = false;
+    } else {
+      warn.hidden = true;
+    }
+  }
+
+  function bindToggle(id, key) {
+    var b = $(id);
+    b.addEventListener('click', function () {
+      state[key] = !state[key];
+      b.setAttribute('aria-pressed', String(state[key]));
+      render();
+    });
+  }
+  bindToggle('tgNum', 'nums');
+  bindToggle('tgMirror', 'mirror');
+  bindToggle('tgHide', 'hide');
+
+  function reveal(btn) {
+    btn.classList.remove('hid');
+    btn.setAttribute('aria-label', btn.getAttribute('data-label'));
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('.cell.hid') : null;
+    if (t) reveal(t);
+  });
+  uni.addEventListener('click', function () { uni.classList.remove('blur'); });
+  revealAll.addEventListener('click', function () {
+    var list = document.querySelectorAll('.cell.hid');
+    for (var i = 0; i < list.length; i++) reveal(list[i]);
+    uni.classList.remove('blur');
+  });
+
+  $('copy').addEventListener('click', function () {
+    var text = uni.value;
+    function fallback() {
+      uni.classList.remove('blur');
+      uni.focus();
+      uni.select();
+      setToast('점자를 선택했어요. 복사해 주세요.');
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { setToast('복사했어요!'); }, fallback);
+    } catch (err) { fallback(); }
+  });
+
+  $('clear').addEventListener('click', function () { src.value = ''; render(); src.focus(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ex]'), function (b) {
+    b.addEventListener('click', function () { src.value = b.getAttribute('data-ex'); render(); });
+  });
+  src.addEventListener('input', render);
+
+  /* 로고 아래 점자: 엔진으로 직접 만든다 */
+  (function () {
+    var logo = Braille.convert('점콕'), h = '';
+    logo.units.forEach(function (u) { u.parts.forEach(function (p) { h += cellHTML(p.c, 'sm', false, false); }); });
+    $('logoCells').innerHTML = h;
+  })();
+
+  src.value = DEFAULT;
+  render();
+})();
+</script>
